@@ -1,0 +1,10 @@
+Benchmark, cycle cout, instruction count
+dhrystone, mcycle = 249142, minstret = 198543, =
+median, mcycle = 5779, minstret = 4159, =
+qsort, mcycle = 200077, minstret = 125425, =
+rsort, mcycle = 217741, minstret = 172986, =
+towers, mcycle = 6329, minstret = 6170, =
+multiply, mcycle = 28359, minstret = 24287, =
+mm, C0: 28961 cycles, C0: 25172 instructions, =
+spmv, mcycle = 57697, minstret = 33902, =
+mt-matmul, matmul(cid, nc, 16, input1_data, input2_data, results_data); barrier(nc): 41227 cycles, 10.0 cycles/iter, 1.5 CPI, , =matmul(cid, nc, 16, input1_data, input2_data, results_data); barrier(nc): 41227 cycles, 10.0 cycles/iter, 1.5 CPI

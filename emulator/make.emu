@@ -1,0 +1,16 @@
+run_bench_scr = ./run_bench.sh
+
+#====
+build-emu:
+	make -j8 CONFIG=BigCoreDefaultCache
+	make -j8 CONFIG=SmallCoreDefaultCache
+	make -j8 CONFIG=BigCoreLargeDCache
+
+sim-emu:
+	${run_bench_scr} all BigCoreDefaultCache
+	${run_bench_scr} all SmallCoreDefaultCache
+	${run_bench_scr} all BigCoreLargeDCache
+
+
+test:
+	make -j8 CONFIG=BigCoreLargeDCache
