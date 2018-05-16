@@ -82,3 +82,21 @@ class BaseFPGAConfig extends Config(new BaseConfig)
 
 class DefaultFPGAConfig extends Config(new WithNSmallCores(1) ++ new BaseFPGAConfig)
 class DefaultFPGASmallConfig extends Config(new DefaultFPGAConfig)
+
+
+//*****************************************************
+//TH
+//*****************************************************
+class MixedCoresConfig extends Config(
+  new WithMixedCores(2, 4) ++ new BaseConfig
+)
+
+class MixedCoresFPGAConfig extends Config(
+  new WithMixedCores(2, 4) ++ new BaseFPGAConfig
+)
+
+class BigCoreDefaultCache extends Config(new WithNBigCores(1) ++ new BaseConfig)
+
+class SmallCoreDefaultCache extends Config(new WithNSmallCores(1) ++ new BaseConfig)
+
+class BigCoreLargeDCache extends Config(new WithNBigCoresLargeDCaches(1) ++ new BaseConfig)

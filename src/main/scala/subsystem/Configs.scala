@@ -32,7 +32,7 @@ class BaseSubsystemConfig extends Config ((site, here, up) => {
 })
 
 /* Composable partial function Configs to set individual parameters */
-
+// BigCore default params
 class WithNBigCores(n: Int) extends Config((site, here, up) => {
   case RocketTilesKey => {
     val big = RocketTileParams(
@@ -42,10 +42,32 @@ class WithNBigCores(n: Int) extends Config((site, here, up) => {
         divEarlyOut = true))),
       dcache = Some(DCacheParams(
         rowBits = site(SystemBusKey).beatBits,
+				nSets = 64, nWays = 4, nTLBEntries = 32,				//ref: 16KB DCache
         nMSHRs = 0,
         blockBytes = site(CacheBlockBytes))),
       icache = Some(ICacheParams(
         rowBits = site(SystemBusKey).beatBits,
+				nSets = 64, nWays = 4, nTLBEntries = 32,				//ref: 16KB ICache, nTLBEntries=32
+        blockBytes = site(CacheBlockBytes))))
+    List.tabulate(n)(i => big.copy(hartId = i))
+  }
+})
+
+class WithNBigCoresLargeDCaches(n: Int) extends Config((site, here, up) => {
+  case RocketTilesKey => {
+    val big = RocketTileParams(
+      core   = RocketCoreParams(mulDiv = Some(MulDivParams(
+        mulUnroll = 8,
+        mulEarlyOut = true,
+        divEarlyOut = true))),
+      dcache = Some(DCacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+				nSets = 64, nWays = 16, nTLBEntries = 32,				//ref: 64KB DCache <- cache size = nWays * (nSet*blockBytes) where blockBytes=64B
+        nMSHRs = 0,
+        blockBytes = site(CacheBlockBytes))),
+      icache = Some(ICacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+				nSets = 64, nWays = 16, nTLBEntries = 32,				//ref: 64KB ICache <- cache size = nWays * (nSet*blockBytes) where blockBytes=64B
         blockBytes = site(CacheBlockBytes))))
     List.tabulate(n)(i => big.copy(hartId = i))
   }
@@ -58,14 +80,14 @@ class WithNSmallCores(n: Int) extends Config((site, here, up) => {
       btb = None,
       dcache = Some(DCacheParams(
         rowBits = site(SystemBusKey).beatBits,
-        nSets = 64,
+        nSets = 64,																		// ref: 4KB DCache
         nWays = 1,
         nTLBEntries = 4,
         nMSHRs = 0,
         blockBytes = site(CacheBlockBytes))),
       icache = Some(ICacheParams(
         rowBits = site(SystemBusKey).beatBits,
-        nSets = 64,
+        nSets = 64,																		// ref: 4KB ICache
         nWays = 1,
         nTLBEntries = 4,
         blockBytes = site(CacheBlockBytes))))
@@ -256,7 +278,7 @@ class WithRationalRocketTiles extends Config((site, here, up) => {
 class WithEdgeDataBits(dataBits: Int) extends Config((site, here, up) => {
   case MemoryBusKey => up(MemoryBusKey, site).copy(beatBytes = dataBits/8)
   case ExtIn => up(ExtIn, site).map(_.copy(beatBytes = dataBits/8))
-  
+
 })
 
 class WithJtagDTM extends Config ((site, here, up) => {
@@ -336,5 +358,45 @@ class WithScratchpadsOnly extends Config((site, here, up) => {
         nSets = 256, // 16Kb scratchpad
         nWays = 1,
         scratch = Some(0x80000000L))))
+  }
+})
+
+//*****************************************************
+//TH:
+//*****************************************************
+class WithMixedCores(n: Int, m: Int) extends Config((site, here, up) => {
+  case RocketTilesKey => {
+    val big = RocketTileParams(
+      core   = RocketCoreParams(mulDiv = Some(MulDivParams(
+        mulUnroll = 8,
+        mulEarlyOut = true,
+        divEarlyOut = true))),
+      dcache = Some(DCacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+        nMSHRs = 0,
+        blockBytes = site(CacheBlockBytes))),
+      icache = Some(ICacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+        blockBytes = site(CacheBlockBytes))))
+
+    val small = RocketTileParams(
+      core = RocketCoreParams(useVM = false, fpu = None),
+      btb = None,
+      dcache = Some(DCacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+        nSets = 64,
+        nWays = 1,
+        nTLBEntries = 4,
+        nMSHRs = 0,
+        blockBytes = site(CacheBlockBytes))),
+      icache = Some(ICacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+        nSets = 64,
+        nWays = 1,
+        nTLBEntries = 4,
+        blockBytes = site(CacheBlockBytes))))
+
+    List.tabulate(n)(i => big.copy(hartId = i))++
+    List.tabulate(m)(i => small.copy(hartId = i+n))
   }
 })

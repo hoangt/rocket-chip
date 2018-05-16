@@ -59,3 +59,10 @@ run-fast: run-asm-tests-fast run-bmark-tests-fast
 .PHONY: run-asm-tests run-bmark-tests
 .PHONY: run-asm-tests-debug run-bmark-tests-debug
 .PHONY: run run-debug run-fast
+
+#=====
+run-asm:run-asm-tests
+run-test:run-bmark-tests
+
+include ./make.emu
+
