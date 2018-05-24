@@ -72,7 +72,7 @@ trait HasTileParameters {
   def masterPortBeatBytes = p(SystemBusKey).beatBytes
 
   // TODO make HellaCacheIO diplomatic and remove this brittle collection of hacks
-  //                  Core   PTW                DTIM                    coprocessors           
+  //                  Core   PTW                DTIM                    coprocessors
   def dcacheArbPorts = 1 + usingVM.toInt + usingDataScratchpad.toInt + p(BuildRoCC).size
 
   // TODO merge with isaString in CSR.scala

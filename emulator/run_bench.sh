@@ -4,7 +4,7 @@ outdir=./output
 benchmark_list=$1
 config=$2
 
-riscv_benchmarks="dhrystone median qsort rsort towers vvadd multiply mm spmv mt-vvadd mt-matmul pmp"
+riscv_benchmarks="dhrystone median qsort rsort towers vvadd multiply mm spmv mt-vvadd mt-matmul fl-matmul pmp"
 
 #====
 case "$1" in
@@ -21,12 +21,12 @@ case "$1" in
 esac
 
 if [ "$2" == "" ]; then
-	config=BigCoreDefaultCache
+	config=cBC16KL1
 fi
 
 echo ">>> Syntax         run_bench.sh <benchmark_name> <config_name>"
 echo ">>> Config         $config"
-echo ">>> Benchmark      $benchmark"
+#echo ">>> Benchmark      $benchmark"
 echo ""
 
 #====
@@ -43,7 +43,7 @@ do
 
 	#==== clean
 	rm -rf output/$benchmark.riscv $bm_run $bm_log
-	ln -fs /home/hoangt/WORK/TOOLS/risc-v/TOOLCHAIN/rocket-chip/riscv64-unknown-elf/share/riscv-tests/benchmarks/$benchmark.riscv output/$benchmark.riscv
+	ln -fs $RISCV/riscv64-unknown-elf/share/riscv-tests/benchmarks/$benchmark.riscv output/$benchmark.riscv
 
 	#==== simulate
 	echo > $bm_log

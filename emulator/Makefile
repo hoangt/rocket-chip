@@ -21,7 +21,8 @@ all: $(emu)
 debug: $(emu_debug)
 
 clean:
-	rm -rf *.o *.a emulator-* $(generated_dir) $(generated_dir_debug) DVEfiles $(output_dir)
+	rm -rf *.o *.a emulator*$(CONFIG) $(generated_dir)/*$(CONFIG)* 
+	rm -rf $(generated_dir_debug)/*$(CONFOG)* DVEfiles $(output_dir)
 
 .PHONY: default all debug clean
 

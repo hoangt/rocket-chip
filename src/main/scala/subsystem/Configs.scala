@@ -53,26 +53,6 @@ class WithNBigCores(n: Int) extends Config((site, here, up) => {
   }
 })
 
-class WithNBigCoresLargeDCaches(n: Int) extends Config((site, here, up) => {
-  case RocketTilesKey => {
-    val big = RocketTileParams(
-      core   = RocketCoreParams(mulDiv = Some(MulDivParams(
-        mulUnroll = 8,
-        mulEarlyOut = true,
-        divEarlyOut = true))),
-      dcache = Some(DCacheParams(
-        rowBits = site(SystemBusKey).beatBits,
-				nSets = 64, nWays = 16, nTLBEntries = 32,				//ref: 64KB DCache <- cache size = nWays * (nSet*blockBytes) where blockBytes=64B
-        nMSHRs = 0,
-        blockBytes = site(CacheBlockBytes))),
-      icache = Some(ICacheParams(
-        rowBits = site(SystemBusKey).beatBits,
-				nSets = 64, nWays = 16, nTLBEntries = 32,				//ref: 64KB ICache <- cache size = nWays * (nSet*blockBytes) where blockBytes=64B
-        blockBytes = site(CacheBlockBytes))))
-    List.tabulate(n)(i => big.copy(hartId = i))
-  }
-})
-
 class WithNSmallCores(n: Int) extends Config((site, here, up) => {
   case RocketTilesKey => {
     val small = RocketTileParams(
@@ -105,7 +85,7 @@ class With1TinyCore extends Config((site, here, up) => {
       btb = None,
       dcache = Some(DCacheParams(
         rowBits = site(SystemBusKey).beatBits,
-        nSets = 256, // 16Kb scratchpad
+        nSets = 256, // 16KB scratchpad
         nWays = 1,
         nTLBEntries = 4,
         nMSHRs = 0,
@@ -113,7 +93,7 @@ class With1TinyCore extends Config((site, here, up) => {
         scratch = Some(0x80000000L))),
       icache = Some(ICacheParams(
         rowBits = site(SystemBusKey).beatBits,
-        nSets = 64,
+        nSets = 64,		//4KB ID
         nWays = 1,
         nTLBEntries = 4,
         blockBytes = site(CacheBlockBytes)))))
@@ -362,41 +342,267 @@ class WithScratchpadsOnly extends Config((site, here, up) => {
 })
 
 //*****************************************************
-//TH:
+// TH:
 //*****************************************************
 class WithMixedCores(n: Int, m: Int) extends Config((site, here, up) => {
   case RocketTilesKey => {
     val big = RocketTileParams(
-      core   = RocketCoreParams(mulDiv = Some(MulDivParams(
-        mulUnroll = 8,
-        mulEarlyOut = true,
-        divEarlyOut = true))),
-      dcache = Some(DCacheParams(
+      core   = RocketCoreParams(
+				mulDiv = Some(MulDivParams(mulUnroll = 8, mulEarlyOut = true, divEarlyOut = true))
+			),
+      dcache = Some(DCacheParams(								// 16KB L1D
         rowBits = site(SystemBusKey).beatBits,
         nMSHRs = 0,
-        blockBytes = site(CacheBlockBytes))),
-      icache = Some(ICacheParams(
+        blockBytes = site(CacheBlockBytes)
+			)),
+      icache = Some(ICacheParams(								// 16KB L1I
         rowBits = site(SystemBusKey).beatBits,
-        blockBytes = site(CacheBlockBytes))))
-
+        blockBytes = site(CacheBlockBytes)
+			))
+		)
     val small = RocketTileParams(
-      core = RocketCoreParams(useVM = false, fpu = None),
+      core = RocketCoreParams(
+				useVM = false, fpu = None
+			),
       btb = None,
       dcache = Some(DCacheParams(
         rowBits = site(SystemBusKey).beatBits,
-        nSets = 64,
-        nWays = 1,
+        nSets = 64, nWays = 1,		// 4KB L1D
         nTLBEntries = 4,
         nMSHRs = 0,
-        blockBytes = site(CacheBlockBytes))),
+        blockBytes = site(CacheBlockBytes)
+			)),
       icache = Some(ICacheParams(
         rowBits = site(SystemBusKey).beatBits,
-        nSets = 64,
+        nSets = 64,								// 4KB L1D
         nWays = 1,
         nTLBEntries = 4,
-        blockBytes = site(CacheBlockBytes))))
-
+        blockBytes = site(CacheBlockBytes))
+			)
+		)
     List.tabulate(n)(i => big.copy(hartId = i))++
     List.tabulate(m)(i => small.copy(hartId = i+n))
   }
+})
+
+//====
+class WithNBigCores64KL1(n: Int) extends Config((site, here, up) => {
+  case RocketTilesKey => {
+    val big = RocketTileParams(
+      core = RocketCoreParams(
+				mulDiv = Some(MulDivParams(mulUnroll = 8, mulEarlyOut = true, divEarlyOut = true))
+			),
+      dcache = Some(DCacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+				nSets = 64, nWays = 16, 			// 64KB L1D <- cache size = nWays * (nSet*blockBytes) where blockBytes=64B
+        nTLBEntries = 32,
+        nMSHRs = 0,
+        blockBytes = site(CacheBlockBytes)
+			)),
+      icache = Some(ICacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+				nSets = 64, nWays = 16, 			// 64KB L1I
+        nTLBEntries = 32,
+        blockBytes = site(CacheBlockBytes)
+			))
+		)
+    List.tabulate(n)(i => big.copy(hartId = i))
+  }
+})
+
+//====
+class WithNBigCoresL1Config(n: Int, p_nWays: Int) extends Config((site, here, up) => {
+  case RocketTilesKey => {
+    val big = RocketTileParams(
+      core = RocketCoreParams(
+        mulDiv = Some(MulDivParams(mulUnroll = 8, mulEarlyOut = true, divEarlyOut = true))
+			),
+      dcache = Some(DCacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+				nSets = 64, nWays = p_nWays, 			// L1D = nWays * 4KB
+        nTLBEntries = 32,
+        nMSHRs = 0,
+        blockBytes = site(CacheBlockBytes)
+			)),
+      icache = Some(ICacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+				nSets = 64, nWays = p_nWays,  		// L1I = nWays * 4KB
+        nTLBEntries = 32,
+        blockBytes = site(CacheBlockBytes)
+			))
+		)
+    List.tabulate(n)(i => big.copy(hartId = i))
+  }
+})
+
+//====
+class With1E31Cores extends Config((site, here, up) => {	// isa = RV32IMAC
+  case XLen => 32                                                    // RV32
+	case RocketTilesKey => List(RocketTileParams(
+    core = RocketCoreParams(
+      useVM = false,
+      fpu = None,
+			useAtomics = true, 							                						   // A
+			useCompressed = true,                           						   // C
+      mulDiv = Some(MulDivParams(                                    // M
+				mulUnroll = 8, divUnroll = 32,
+        mulEarlyOut = true, divEarlyOut = true)),
+      nLocalInterrupts = 16,
+			nBreakpoints = 2,
+      nPMPs = 8,
+			nPerfCounters = 6,																						// 0-6
+			haveBasicCounters = true
+    ),
+    //btb = None,
+    btb = Some(BTBParams(
+			nEntries=28,
+			bhtParams=Some(BHTParams(nEntries=512))
+		)),
+    dcache = Some(DCacheParams(
+      rowBits = site(SystemBusKey).beatBits,
+      nSets = 1024, nWays = 1,    		// 32KB L1D scratchpad as SPM (nWays=1)
+      nTLBEntries = 4,
+      nMSHRs = 0,
+      blockBytes = site(CacheBlockBytes),	// Cache line size = 64B
+      scratch = Some(0x80000000L)			    // 0x80000000L -> start address of application binary
+		)),
+    icache = Some(ICacheParams(
+      rowBits = site(SystemBusKey).beatBits,
+      nSets = 128, nWays = 2,					// 16KB L1I
+      nTLBEntries = 4,
+      blockBytes = site(CacheBlockBytes)
+		))
+	))
+  case RocketCrossingKey => List(RocketCrossingParams(
+    crossingType = SynchronousCrossing(),
+    master = TileMasterPortParams(cork = Some(true))
+  ))
+})
+
+//====
+class With1E51Cores extends Config((site, here, up) => {	// isa = RV32IMAC
+  case XLen => 64                                                      // RV64
+	case RocketTilesKey => List(RocketTileParams(
+    core = RocketCoreParams(
+      useVM = false,
+      fpu = None,
+			useAtomics = true, 							                						   // A
+			useCompressed = true,                           						   // C
+      mulDiv = Some(MulDivParams(                                    // M
+				mulUnroll = 8, divUnroll = 32,
+        mulEarlyOut = true, divEarlyOut = true)),
+      nLocalInterrupts = 16,
+			nBreakpoints = 2,
+      nPMPs = 8,
+			nPerfCounters = 6,																						// 0-6
+			haveBasicCounters = true
+    ),
+    //btb = None,
+    btb = Some(BTBParams(
+			nEntries=28,
+			bhtParams=Some(BHTParams(nEntries=512))
+		)),
+    dcache = Some(DCacheParams(
+      rowBits = site(SystemBusKey).beatBits,
+      nSets = 1024, nWays = 1,    			// 64KB L1D scratchpad as SPM (nWays=1)
+      nTLBEntries = 4,
+      nMSHRs = 0,
+      blockBytes = site(CacheBlockBytes),	// Cache line size = 64B
+      scratch = Some(0x80000000L)			// 0x80000000L -> start address of application binary
+		)),
+    icache = Some(ICacheParams(
+      rowBits = site(SystemBusKey).beatBits,
+      nSets = 128, nWays = 2,					// 16KB L1I
+      nTLBEntries = 4,
+      blockBytes = site(CacheBlockBytes)
+		))
+	))
+  case RocketCrossingKey => List(RocketCrossingParams(
+    crossingType = SynchronousCrossing(),
+    master = TileMasterPortParams(cork = Some(true))
+  ))
+})
+
+//====
+class WithNE31Cores(n: Int) extends Config((site, here, up) => {	// isa = RV32IMAC
+  case XLen => 32                                                      // RV32
+	case RocketTilesKey => {
+  	val mcE31 = RocketTileParams(
+      core = RocketCoreParams(
+        useVM = false,
+        fpu = None,
+				useAtomics = true, 							                						   // A
+				useCompressed = true,                           						   // C
+        mulDiv = Some(MulDivParams(                                    // M
+					mulUnroll = 8, divUnroll = 32,
+          mulEarlyOut = true, divEarlyOut = true)),
+        nLocalInterrupts = 16,
+				nBreakpoints = 2,
+        nPMPs = 8,
+				nPerfCounters = 6,																						// 0-6
+				haveBasicCounters = true
+      ),
+      //btb = None,
+      btb = Some(BTBParams(
+				nEntries=28,
+				bhtParams=Some(BHTParams(nEntries=512))
+			)),
+      dcache = Some(DCacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+        nSets = 1024, nWays = 1,    		// 32KB L1D scratchpad as SPM (nWays=1)
+        nTLBEntries = 4,
+        nMSHRs = 0,
+        blockBytes = site(CacheBlockBytes)	// Cache line size = 64B
+			)),
+      icache = Some(ICacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+        nSets = 128, nWays = 2,					// 16KB L1I
+        nTLBEntries = 4,
+        blockBytes = site(CacheBlockBytes)
+			))
+		)
+		List.tabulate(n)(i => mcE31.copy(hartId = i))
+	}
+})
+
+//====
+class WithNE51Cores(n: Int) extends Config((site, here, up) => {	// isa = RV32IMAC
+  case XLen => 64                                                      // RV64
+	case RocketTilesKey => {
+  	val mcE51 = RocketTileParams(
+      core = RocketCoreParams(
+        useVM = false,
+        fpu = None,
+				useAtomics = true, 							                						   // A
+				useCompressed = true,                           						   // C
+        mulDiv = Some(MulDivParams(                                    // M
+					mulUnroll = 8, divUnroll = 32,
+          mulEarlyOut = true, divEarlyOut = true)),
+        nLocalInterrupts = 16,
+				nBreakpoints = 2,
+        nPMPs = 8,
+				nPerfCounters = 6,																						// 0-6
+				haveBasicCounters = true
+      ),
+      //btb = None,
+      btb = Some(BTBParams(
+				nEntries=28,
+				bhtParams=Some(BHTParams(nEntries=512))
+			)),
+      dcache = Some(DCacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+        nSets = 1024, nWays = 1,    				// 64KB L1D scratchpad
+        nTLBEntries = 4,
+        nMSHRs = 0,
+        blockBytes = site(CacheBlockBytes)	// Cache line size = 64B
+			)),
+      icache = Some(ICacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+        nSets = 128, nWays = 2,					// 16KB L1I
+        nTLBEntries = 4,
+        blockBytes = site(CacheBlockBytes)
+			))
+		)
+		List.tabulate(n)(i => mcE51.copy(hartId = i))
+	}
 })

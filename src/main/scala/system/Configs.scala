@@ -83,20 +83,35 @@ class BaseFPGAConfig extends Config(new BaseConfig)
 class DefaultFPGAConfig extends Config(new WithNSmallCores(1) ++ new BaseFPGAConfig)
 class DefaultFPGASmallConfig extends Config(new DefaultFPGAConfig)
 
-
 //*****************************************************
 //TH
 //*****************************************************
-class MixedCoresConfig extends Config(
-  new WithMixedCores(2, 4) ++ new BaseConfig
-)
+class MixedCoresConfig extends Config(new WithMixedCores(2, 4) ++ new BaseConfig)
 
-class MixedCoresFPGAConfig extends Config(
-  new WithMixedCores(2, 4) ++ new BaseFPGAConfig
-)
+class MixedCoresFPGAConfig extends Config(new WithMixedCores(2, 4) ++ new BaseFPGAConfig)
 
-class BigCoreDefaultCache extends Config(new WithNBigCores(1) ++ new BaseConfig)
+class cBC16KL1 extends Config(new WithNBigCores(1) ++ new BaseConfig)
 
-class SmallCoreDefaultCache extends Config(new WithNSmallCores(1) ++ new BaseConfig)
+class cSC4KL1 extends Config(new WithNSmallCores(1) ++ new BaseConfig)
 
-class BigCoreLargeDCache extends Config(new WithNBigCoresLargeDCaches(1) ++ new BaseConfig)
+class cBC64KL1 extends Config(new WithNBigCores64KL1(1) ++ new BaseConfig)
+
+class E31 extends Config(
+	new WithNoMemPort ++
+	new WithNMemoryChannels(0) ++
+	new WithIncoherentTiles ++
+	new With1E31Cores
+	++ new BaseConfig)
+
+class E51 extends Config(
+	new WithNoMemPort ++
+	new WithNMemoryChannels(0) ++
+	new WithIncoherentTiles ++
+	new With1E51Cores
+	++ new BaseConfig)
+
+class E32 extends Config(new WithNE31Cores(2) ++ new BaseConfig)
+class E34 extends Config(new WithNE31Cores(4) ++ new BaseConfig)
+
+class E52 extends Config(new WithNE51Cores(2) ++ new BaseConfig)
+class E54 extends Config(new WithNE51Cores(4) ++ new BaseConfig)

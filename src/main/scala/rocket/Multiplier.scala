@@ -41,10 +41,10 @@ class MulDiv(cfg: MulDivParams, width: Int, nXpr: Int = 32) extends Module {
   val w = io.req.bits.in1.getWidth
   val mulw = if (cfg.mulUnroll == 0) w else (w + cfg.mulUnroll - 1) / cfg.mulUnroll * cfg.mulUnroll
   val fastMulW = if (cfg.mulUnroll == 0) false else w/2 > cfg.mulUnroll && w % (2*cfg.mulUnroll) == 0
- 
+
   val s_ready :: s_neg_inputs :: s_mul :: s_div :: s_dummy :: s_neg_output :: s_done_mul :: s_done_div :: Nil = Enum(UInt(), 8)
   val state = Reg(init=s_ready)
- 
+
   val req = Reg(io.req.bits)
   val count = Reg(UInt(width = log2Ceil(
     ((cfg.divUnroll != 0).option(w/cfg.divUnroll + 1).toSeq ++
@@ -79,7 +79,7 @@ class MulDiv(cfg: MulDivParams, width: Int, nXpr: Int = 32) extends Module {
   }
   val (lhs_in, lhs_sign) = sext(io.req.bits.in1, halfWidth(io.req.bits), lhsSigned)
   val (rhs_in, rhs_sign) = sext(io.req.bits.in2, halfWidth(io.req.bits), rhsSigned)
-  
+
   val subtractor = remainder(2*w,w) - divisor
   val result = Mux(resHi, remainder(2*w, w+1), remainder(w-1, 0))
   val negated_remainder = -result

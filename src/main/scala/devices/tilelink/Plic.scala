@@ -161,7 +161,7 @@ class TLPLIC(params: PLICParams, beatBytes: Int)(implicit p: Parameters) extends
     val enables = Seq.fill(nHarts) { enableRegs }
     val enableVec = Vec(enables.map(x => Cat(x.reverse)))
     val enableVec0 = Vec(enableVec.map(x => Cat(x, UInt(0, width=1))))
-    
+
     val maxDevs = Reg(Vec(nHarts, UInt(width = log2Ceil(nDevices+1))))
     val pendingUInt = Cat(pending.reverse)
     for (hart <- 0 until nHarts) {
@@ -267,7 +267,7 @@ class TLPLIC(params: PLICParams, beatBytes: Int)(implicit p: Parameters) extends
             (Bool(true), maxDevs(i))
           },
           RegWriteFn { (valid, data) =>
-            assert(completerDev === data.extract(log2Ceil(nDevices+1)-1, 0), 
+            assert(completerDev === data.extract(log2Ceil(nDevices+1)-1, 0),
                    "completerDev should be consistent for all harts")
             completerDev := data.extract(log2Ceil(nDevices+1)-1, 0)
             completer(i) := valid && enableVec0(i)(completerDev)

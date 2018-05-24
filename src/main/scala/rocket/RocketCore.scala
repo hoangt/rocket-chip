@@ -18,9 +18,9 @@ case class RocketCoreParams(
   useVM: Boolean = true,
   useUser: Boolean = false,
   useDebug: Boolean = true,
-  useAtomics: Boolean = true,
+  useAtomics: Boolean = true,															// A
   useAtomicsOnlyForIO: Boolean = false,
-  useCompressed: Boolean = true,
+  useCompressed: Boolean = true,													// C
   nLocalInterrupts: Int = 0,
   nBreakpoints: Int = 1,
   nPMPs: Int = 8,
@@ -33,8 +33,8 @@ case class RocketCoreParams(
   fastLoadWord: Boolean = true,
   fastLoadByte: Boolean = false,
   tileControlAddr: Option[BigInt] = None,
-  mulDiv: Option[MulDivParams] = Some(MulDivParams()),
-  fpu: Option[FPUParams] = Some(FPUParams())
+  mulDiv: Option[MulDivParams] = Some(MulDivParams()),		// M
+  fpu: Option[FPUParams] = Some(FPUParams())							// XLen<=32 -> F, XLen>32 -> D
 ) extends CoreParams {
   val pmpGranularity: Int = 4
   val fetchWidth: Int = if (useCompressed) 2 else 1

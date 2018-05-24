@@ -11,14 +11,14 @@ import freechips.rocketchip.subsystem.CacheBlockBytes
 import freechips.rocketchip.tile.HasCoreParameters
 import freechips.rocketchip.util._
 
-case class BHTParams(
+case class BHTParams(				// Branch History Table
   nEntries: Int = 512,
   counterLength: Int = 1,
   historyLength: Int = 8,
   historyBits: Int = 3)
 
 case class BTBParams(
-  nEntries: Int = 28,
+  nEntries: Int = 28,				// BTB buffer size
   nMatchBits: Int = 14,
   nPages: Int = 6,
   nRAS: Int = 6,

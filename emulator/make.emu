@@ -1,16 +1,23 @@
 run_bench_scr = ./run_bench.sh
+config        = cBC16KL1
 
 #====
 build-emu:
-	make -j8 CONFIG=BigCoreDefaultCache
-	make -j8 CONFIG=SmallCoreDefaultCache
-	make -j8 CONFIG=BigCoreLargeDCache
+	make -j8 CONFIG=cBC16KL1
+	make -j8 CONFIG=cBC64KL1
+	make -j8 CONFIG=cSC4KL1
 
+#====
 sim-emu:
-	${run_bench_scr} all BigCoreDefaultCache
-	${run_bench_scr} all SmallCoreDefaultCache
-	${run_bench_scr} all BigCoreLargeDCache
+	@mkdir -p output
+	${run_bench_scr} all ${config}
 
+sim-all:
+	@mkdir -p output
+	@make sim-emu config=cBC16KL1
+	@make sim-emu config=cBC64KL1
+	@make sim-emu config=cSC4KL1
 
+#====
 test:
-	make -j8 CONFIG=BigCoreLargeDCache
+	make -j8 CONFIG=cBC16KL1
