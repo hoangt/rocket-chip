@@ -1,6 +1,3 @@
-[submodule "dramsim2"]
-  path = dramsim2
-  url = https://github.com/dramninjasUMD/DRAMSim2.git
 [submodule "riscv-tools"]
 	path = riscv-tools
 	url = https://github.com/riscv/riscv-tools.git
@@ -16,3 +13,6 @@
 [submodule "firrtl"]
 	path = firrtl
 	url = https://github.com/ucb-bar/firrtl.git
+[submodule "dramsim2"]
+	path = dramsim2
+	url = https://github.com/dramninjasUMD/DRAMSim2.git
