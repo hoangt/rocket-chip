@@ -51,6 +51,16 @@ timeout_cycles = 1000000000
 bootrom_img = $(base_dir)/bootrom/bootrom.img
 
 #--------------------------------------------------------------------
+# DRAMSim2
+#--------------------------------------------------------------------
+
+DRAMSIM_OBJS := $(patsubst %.cpp,%.o,$(wildcard $(base_dir)/dramsim2/*.cpp))
+$(DRAMSIM_OBJS): %.o: %.cpp
+	$(CXX) $(CXXFLAGS) -DNO_STORAGE -DNO_OUTPUT -Dmain=nomain -c -o $@ $<
+$(sim_dir)/libdramsim.a: $(DRAMSIM_OBJS)
+	ar rcs $@ $^
+
+#--------------------------------------------------------------------
 # Build Tests
 #--------------------------------------------------------------------
 

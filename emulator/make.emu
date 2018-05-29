@@ -1,23 +1,40 @@
 run_bench_scr = ./run_bench.sh
-config        = cBC16KL1
+config        = cSC4kL1RV64imac
+input_dir     = ./output
+
+config_list   =  cSC4kL1RV64imac \
+								 cBC16kL1RV64imac \
+								 cBC16kL1RV64imacf \
+								 cBC64kL1RV64imac \
+								 cBC64kL1RV64imacf \
 
 #====
-build-emu:
-	make -j8 CONFIG=cBC16KL1
-	make -j8 CONFIG=cBC64KL1
-	make -j8 CONFIG=cSC4KL1
+build-all:
+	@for conf in ${config_list} ; do \
+		make -j8 CONFIG=$$conf ; \
+	done
 
 #====
-sim-emu:
+sim-one:
 	@mkdir -p output
 	${run_bench_scr} all ${config}
 
+
 sim-all:
 	@mkdir -p output
-	@make sim-emu config=cBC16KL1
-	@make sim-emu config=cBC64KL1
-	@make sim-emu config=cSC4KL1
+	@for conf in ${config_list} ; do \
+		make sim-one config=$$conf ; \
+	done
+
+#====
+get-one:
+	./get_results.sh ${config} ${input_dir}
+
+get-all:
+	@for conf in ${config_list} ; do \
+		make get-one config=$$conf input_dir=data/$$conf ; \
+	done
 
 #====
 test:
-	make -j8 CONFIG=cBC16KL1
+	make -j8 CONFIG=${config}

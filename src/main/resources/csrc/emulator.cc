@@ -68,6 +68,10 @@ EMULATOR OPTIONS\n\
   -h, --help               Display this help and exit\n\
   -m, --max-cycles=CYCLES  Kill the emulation after CYCLES\n\
        +max-cycles=CYCLES\n\
+  -d, --dramsim            Simulate with DRAM models (DRAMSim2)\n\
+       +dramsim\n\
+  -l, --loadmem            Load RISCV hexa file into main memory
+       +loadmem\n\
   -s, --seed=SEED          Use random number seed SEED\n\
   -r, --rbb-port=PORT      Use PORT for remote bit bang (with OpenOCD and GDB) \n\
                            If not specified, a random port will be chosen\n\
@@ -112,7 +116,9 @@ int main(int argc, char** argv)
   unsigned random_seed = (unsigned)time(NULL) ^ (unsigned)getpid();
   uint64_t max_cycles = -1;
   int ret = 0;
-  bool print_cycles = false;
+  bool print_cycles = false; 
+	bool dramsim=false;
+  char *loadmem = NULL;
   // Port numbers are 16 bit unsigned integers. 
   uint16_t rbb_port = 0;
 #if VM_TRACE
@@ -127,6 +133,8 @@ int main(int argc, char** argv)
       {"cycle-count", no_argument,       0, 'c' },
       {"help",        no_argument,       0, 'h' },
       {"max-cycles",  required_argument, 0, 'm' },
+      {"dramsim",     no_argument,       0, 'd' },
+      {"loadmem",     required_argument, 0, 'l' },
       {"seed",        required_argument, 0, 's' },
       {"rbb-port",    required_argument, 0, 'r' },
       {"verbose",     no_argument,       0, 'V' },
@@ -153,6 +161,16 @@ int main(int argc, char** argv)
       case 's': random_seed = atoi(optarg); break;
       case 'r': rbb_port = atoi(optarg);    break;
       case 'V': verbose = true;             break;
+			// TH
+      case 'd': dramsim = true;             break;
+      case 'l': {
+        loadmem = strcmp(optarg, "-") == 0 ? stdout : fopen(optarg, "w");
+        if (!loadmem2) {
+          std::cerr << "Unable to open HEX" << optarg << " RISCV file for memory load\n";
+          return 1;
+        }
+        break;
+      }
 #if VM_TRACE
       case 'v': {
         vcdfile = strcmp(optarg, "-") == 0 ? stdout : fopen(optarg, "w");

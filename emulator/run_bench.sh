@@ -26,7 +26,7 @@ fi
 
 echo ">>> Syntax         run_bench.sh <benchmark_name> <config_name>"
 echo ">>> Config         $config"
-#echo ">>> Benchmark      $benchmark"
+#echo ">>> Benchmark     $benchmark"
 echo ""
 
 #====
@@ -54,7 +54,7 @@ done
 
 if [ "$1" == "all" ]; then
 	result_file=result_$config\_riscv_bench.csv
-	./get_results.sh $config
+	./get_results.sh $config $outdir
 	rm -rf data/$config && mkdir -p data/$config
 	cp -r output/*.log $result_file data/$config
 fi

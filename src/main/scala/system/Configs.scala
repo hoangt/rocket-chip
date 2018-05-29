@@ -86,32 +86,35 @@ class DefaultFPGASmallConfig extends Config(new DefaultFPGAConfig)
 //*****************************************************
 //TH
 //*****************************************************
-class MixedCoresConfig extends Config(new WithMixedCores(2, 4) ++ new BaseConfig)
+class MixedCoresConfig extends Config(new WithMixedRV64imacf(2, 4, 4, 4, 1, 1) ++ new BaseConfig)
 
-class MixedCoresFPGAConfig extends Config(new WithMixedCores(2, 4) ++ new BaseFPGAConfig)
+class MixedCoresFPGAConfig extends Config(new WithMixedRV64imacf(2, 4, 4, 4, 1, 1) ++ new BaseFPGAConfig)
 
-class cBC16KL1 extends Config(new WithNBigCores(1) ++ new BaseConfig)
+// Exploration
+class cSC4kL1RV64imac   extends Config(new WithNSmallRV64imac(1, 1, 1)  ++ new BaseConfig)
+class cSC16kL1RV64imac  extends Config(new WithNBigRV64imac(1, 4, 4)    ++ new BaseConfig)
+class cSC64kL1RV64imac  extends Config(new WithNBigRV64imac(1, 16, 16)  ++ new BaseConfig)
 
-class cSC4KL1 extends Config(new WithNSmallCores(1) ++ new BaseConfig)
+class cSC16kL1RV64imacf extends Config(new WithNBigRV64imacf(1, 4, 4)   ++ new BaseConfig)
+class cSC64kL1RV64imacf extends Config(new WithNBigRV64imacf(1, 16, 16) ++ new BaseConfig)
 
-class cBC64KL1 extends Config(new WithNBigCores64KL1(1) ++ new BaseConfig)
-
+// SiFive reference
 class E31 extends Config(
 	new WithNoMemPort ++
 	new WithNMemoryChannels(0) ++
 	new WithIncoherentTiles ++
-	new With1E31Cores
+	new With1E31RV32IMAC
 	++ new BaseConfig)
 
 class E51 extends Config(
 	new WithNoMemPort ++
 	new WithNMemoryChannels(0) ++
 	new WithIncoherentTiles ++
-	new With1E51Cores
+	new With1E51RV64IMAC
 	++ new BaseConfig)
 
-class E32 extends Config(new WithNE31Cores(2) ++ new BaseConfig)
-class E34 extends Config(new WithNE31Cores(4) ++ new BaseConfig)
+class E32 extends Config(new WithNE31RV32IMAC(2) ++ new BaseConfig)
+class E34 extends Config(new WithNE31RV32IMAC(4) ++ new BaseConfig)
 
-class E52 extends Config(new WithNE51Cores(2) ++ new BaseConfig)
-class E54 extends Config(new WithNE51Cores(4) ++ new BaseConfig)
+class E52 extends Config(new WithNE51RV64IMAC(2) ++ new BaseConfig)
+class E54 extends Config(new WithNE51RV64IMAC(4) ++ new BaseConfig)
