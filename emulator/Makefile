@@ -8,9 +8,11 @@ output_dir = $(sim_dir)/output
 
 include $(base_dir)/Makefrag
 
-CXXSRCS := emulator SimDTM SimJTAG remote_bitbang
-CXXFLAGS := $(CXXFLAGS) -std=c++11 -I$(RISCV)/include
-LDFLAGS := $(LDFLAGS) -L$(RISCV)/lib -Wl,-rpath,$(RISCV)/lib -L$(abspath $(sim_dir)) -lfesvr -lpthread
+CXXSRCS := emulator SimDTM SimJTAG remote_bitbang mm mm_dramsim2
+#CXXSRCS := emulator SimDTM SimJTAG remote_bitbang
+
+CXXFLAGS := $(CXXFLAGS) -std=c++11 -I$(RISCV)/include -I$(base_dir)/dramsim2
+LDFLAGS := $(LDFLAGS) -L$(RISCV)/lib -L$(base_dir)/dramsim2 -Wl,-rpath,$(RISCV)/lib -L$(abspath $(sim_dir)) -ldramsim -lfesvr -lpthread
 
 emu = emulator-$(PROJECT)-$(CONFIG)
 emu_debug = emulator-$(PROJECT)-$(CONFIG)-debug
@@ -21,7 +23,7 @@ all: $(emu)
 debug: $(emu_debug)
 
 clean:
-	rm -rf *.o *.a emulator*$(CONFIG) $(generated_dir)/*$(CONFIG)* 
+	rm -rf *.o *.a emulator*$(CONFIG) $(generated_dir)/*$(CONFIG)*
 	rm -rf $(generated_dir_debug)/*$(CONFOG)* DVEfiles $(output_dir)
 
 .PHONY: default all debug clean
@@ -66,4 +68,3 @@ run-asm:run-asm-tests
 run-test:run-bmark-tests
 
 include ./make.emu
-

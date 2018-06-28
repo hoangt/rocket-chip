@@ -7,12 +7,20 @@ config_list   =  cSC4kL1RV64imac \
 								 cBC16kL1RV64imacf \
 								 cBC64kL1RV64imac \
 								 cBC64kL1RV64imacf \
+								 E31Like \
+                 E51Like
 
 #====
 build-all:
 	@for conf in ${config_list} ; do \
-		make -j8 CONFIG=$$conf ; \
+		make build-one CONFIG=$$conf ; \
 	done
+
+build-one:
+	rm -rf emulator-freechips.rocketchip.system-${config} \
+         generated-src/freechips.rocketchip.system.${config}* \
+         generated-src-debug/freechips.rocketchip.system.${config}*
+	make -j8 CONFIG=${config} | tee logs/build_${config}.log
 
 #====
 sim-one:
@@ -37,4 +45,4 @@ get-all:
 
 #====
 test:
-	make -j8 CONFIG=${config}
+	@make build-one config=myCore

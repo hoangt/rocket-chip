@@ -6,6 +6,10 @@
 #include <memory>
 #include "verilated_vcd_c.h"
 #endif
+
+#include "mm.h"
+#include "mm_dramsim2.h"
+
 #include <fesvr/dtm.h>
 #include "remote_bitbang.h"
 #include <iostream>
@@ -15,6 +19,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
+
+#define MEM_SIZE       0x10000000L
+#define MEM_SIZE_BITS  3
+#define MEM_LEN_BITS   8
+#define MEM_RESP_BITS  2
 
 // For option parsing, which is split across this file, Verilog, and
 // FESVR's HTIF, a few external files must be pulled in. The list of
@@ -70,7 +79,7 @@ EMULATOR OPTIONS\n\
        +max-cycles=CYCLES\n\
   -d, --dramsim            Simulate with DRAM models (DRAMSim2)\n\
        +dramsim\n\
-  -l, --loadmem            Load RISCV hexa file into main memory
+  -l, --loadmem            Load RISCV hexa file into main memory\n\
        +loadmem\n\
   -s, --seed=SEED          Use random number seed SEED\n\
   -r, --rbb-port=PORT      Use PORT for remote bit bang (with OpenOCD and GDB) \n\
@@ -116,10 +125,15 @@ int main(int argc, char** argv)
   unsigned random_seed = (unsigned)time(NULL) ^ (unsigned)getpid();
   uint64_t max_cycles = -1;
   int ret = 0;
-  bool print_cycles = false; 
+  bool print_cycles = false;
+
 	bool dramsim=false;
-  char *loadmem = NULL;
-  // Port numbers are 16 bit unsigned integers. 
+  const char *loadmem = NULL;
+	FILE * hexfile = NULL;
+
+	uint64_t memsz_mb = MEM_SIZE / (1024*1024);
+
+  // Port numbers are 16 bit unsigned integers.
   uint16_t rbb_port = 0;
 #if VM_TRACE
   FILE * vcdfile = NULL;
@@ -164,11 +178,13 @@ int main(int argc, char** argv)
 			// TH
       case 'd': dramsim = true;             break;
       case 'l': {
-        loadmem = strcmp(optarg, "-") == 0 ? stdout : fopen(optarg, "w");
-        if (!loadmem2) {
+        hexfile = strcmp(optarg, "-") == 0 ? stdout : fopen(optarg, "w");
+        if (!hexfile) {
           std::cerr << "Unable to open HEX" << optarg << " RISCV file for memory load\n";
           return 1;
         }
+				loadmem = optarg;
+				fclose(hexfile);
         break;
       }
 #if VM_TRACE

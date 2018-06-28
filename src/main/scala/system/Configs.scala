@@ -90,31 +90,38 @@ class MixedCoresConfig extends Config(new WithMixedRV64imacf(2, 4, 4, 4, 1, 1) +
 
 class MixedCoresFPGAConfig extends Config(new WithMixedRV64imacf(2, 4, 4, 4, 1, 1) ++ new BaseFPGAConfig)
 
-// Exploration
+//==== Core variants ====
 class cSC4kL1RV64imac   extends Config(new WithNSmallRV64imac(1, 1, 1)  ++ new BaseConfig)
 class cSC16kL1RV64imac  extends Config(new WithNBigRV64imac(1, 4, 4)    ++ new BaseConfig)
 class cSC64kL1RV64imac  extends Config(new WithNBigRV64imac(1, 16, 16)  ++ new BaseConfig)
-
 class cSC16kL1RV64imacf extends Config(new WithNBigRV64imacf(1, 4, 4)   ++ new BaseConfig)
 class cSC64kL1RV64imacf extends Config(new WithNBigRV64imacf(1, 16, 16) ++ new BaseConfig)
 
-// SiFive reference
-class E31 extends Config(
+//==== My core (add RoCC/TL/L2/MainMemory)
+class myCore extends Config(
+	new WithNBigRV64imacf(1, 4, 4) ++			// datapath + $L1I + $L1D
+	new WithRoccExample ++ 								// add (multiple) RoCC accelerators
+	new WithNMemoryChannels(1) ++					// MainMemory interface (N channels)
+	new BaseConfig
+)
+
+//==== SiFive reference ====//
+class E31Like extends Config(
 	new WithNoMemPort ++
 	new WithNMemoryChannels(0) ++
 	new WithIncoherentTiles ++
-	new With1E31RV32IMAC
-	++ new BaseConfig)
+	new With1E31RV32IMAC ++
+	new BaseConfig)
 
-class E51 extends Config(
+class E51Like extends Config(
 	new WithNoMemPort ++
 	new WithNMemoryChannels(0) ++
 	new WithIncoherentTiles ++
-	new With1E51RV64IMAC
-	++ new BaseConfig)
+	new With1E51RV64IMAC ++
+	new BaseConfig)
 
-class E32 extends Config(new WithNE31RV32IMAC(2) ++ new BaseConfig)
-class E34 extends Config(new WithNE31RV32IMAC(4) ++ new BaseConfig)
+class DualE31Like extends Config(new WithNE31RV32IMAC(2) ++ new BaseConfig)
+class QuadE31Like extends Config(new WithNE31RV32IMAC(4) ++ new BaseConfig)
 
-class E52 extends Config(new WithNE51RV64IMAC(2) ++ new BaseConfig)
-class E54 extends Config(new WithNE51RV64IMAC(4) ++ new BaseConfig)
+class DualE51Like extends Config(new WithNE51RV64IMAC(2) ++ new BaseConfig)
+class QuadE51Like extends Config(new WithNE51RV64IMAC(4) ++ new BaseConfig)

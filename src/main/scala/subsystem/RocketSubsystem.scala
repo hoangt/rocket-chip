@@ -128,7 +128,7 @@ trait HasRocketTiles extends HasTiles
     periphIntNode := plic.intnode                    // meip
     if (tp.core.useVM) periphIntNode := plic.intnode // seip
 
-    // 3. local interrupts  never cross 
+    // 3. local interrupts  never cross
     // rocket.intInwardNode is wired up externally     // lip
 
     // 4. conditional crossing from core to PLIC
