@@ -8,13 +8,14 @@ output_dir = $(sim_dir)/output
 
 include $(base_dir)/Makefrag
 
-CXXSRCS := emulator SimDTM SimJTAG remote_bitbang mm mm_dramsim2
-#CXXSRCS := emulator SimDTM SimJTAG remote_bitbang
+CXXSRCS  := emulator SimDTM SimJTAG remote_bitbang
+CXXSRCS  += mm mm_dramsim2
 
 CXXFLAGS := $(CXXFLAGS) -std=c++11 -I$(RISCV)/include -I$(base_dir)/dramsim2
-LDFLAGS := $(LDFLAGS) -L$(RISCV)/lib -L$(base_dir)/dramsim2 -Wl,-rpath,$(RISCV)/lib -L$(abspath $(sim_dir)) -ldramsim -lfesvr -lpthread
+LDFLAGS  := $(LDFLAGS) -L$(RISCV)/lib -L$(abspath $(sim_dir)) -Wl,-rpath,$(RISCV)/lib -lfesvr -lpthread
+LDFLAGS  += -L$(base_dir)/dramsim2 -Wl,-rpath,$(base_dir)/dramsim2 -ldramsim 
 
-emu = emulator-$(PROJECT)-$(CONFIG)
+emu       = emulator-$(PROJECT)-$(CONFIG)
 emu_debug = emulator-$(PROJECT)-$(CONFIG)-debug
 
 include $(sim_dir)/Makefrag-verilator

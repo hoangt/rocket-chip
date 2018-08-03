@@ -7,6 +7,10 @@ config=$2
 riscv_benchmarks="dhrystone median qsort rsort towers vvadd multiply mm spmv mt-vvadd mt-matmul fl-matmul pmp"
 
 #====
+max_cycles=100000000000
+emu_opts="+cycle-count +max-cycles=$max_cycles +verbose"
+
+#====
 case "$1" in
 	"")
 		benchmark_list=dhrystone
@@ -15,41 +19,76 @@ case "$1" in
 		benchmark_list=$riscv_benchmarks
 		rm -rf $outdir/*
 		;;
+  "help")
+		echo ">>> Syntax:  run_bench.sh <benchmark_name> <emu_config> <dramsim>" 
+		exit -1
+		;;
+  "h")
+		echo ">>> Syntax:  run_bench.sh <benchmark_name> <emu_config> <dramsim>" 
+		exit -1
+		;;
 	*)
 		benchmark_list=$1
 		;;
 esac
 
 if [ "$2" == "" ]; then
-	config=cBC16KL1
+	config=myCore
 fi
 
-echo ">>> Syntax         run_bench.sh <benchmark_name> <config_name>"
-echo ">>> Config         $config"
-#echo ">>> Benchmark     $benchmark"
-echo ""
+if [ "$3" == "dramsim" ]; then
+	dramsim_msg="Enable"
+else
+	dramsim_msg="Disable"
+fi
 
 #====
 emulator=./emulator-freechips.rocketchip.system-$config
-max_cycles=10000000000
+
+echo ""
+echo "=================================================================="
+echo ">>> Emulator          $emulator"
+echo ">>> Max cycle         $max_cycles"
+echo ">>> DRAM sim          $dramsim_msg"
+echo "=================================================================="
+echo ""
 
 #==== 
 for benchmark in $benchmark_list
 do
 	#==== setup
-	bm_riscv=$outdir/$benchmark.riscv
-	bm_run=$outdir/$benchmark.riscv.run
-	bm_log=$outdir/$benchmark.riscv.log
-
+	bm_bin=$benchmark.riscv
+	bm_hex=$benchmark.riscv.hex
+	bm_run=$benchmark.riscv.run
+	bm_log=$benchmark.riscv.log
+	
 	#==== clean
-	rm -rf output/$benchmark.riscv $bm_run $bm_log
-	ln -fs $RISCV/riscv64-unknown-elf/share/riscv-tests/benchmarks/$benchmark.riscv output/$benchmark.riscv
+	rm -rf $outdir/$bm_bin $outdir/$bm_hex $outdir/$bm_run $outdir/$bm_log
+	ln -fs $RISCV/riscv64-unknown-elf/share/riscv-tests/benchmarks/$bm_bin   $outdir/$bm_bin
+	ln -fs $RISCV/riscv64-unknown-elf/share/riscv-tests/benchmarks/$bm_hex   $outdir/$bm_hex
 
 	#==== simulate
-	echo > $bm_log
-	echo ">>> Benchmark $benchmark, Configuration $$config" >> $bm_log
-	$emulator +max-cycles=$max_cycles  $bm_riscv 2> /dev/null 2> $bm_run | tee -a $bm_log
-	echo >> $bm_log
+	if [ "$3" == "dramsim" ]; then
+		emu_opts="$emu_opts +dramsim"
+    emu_cmds="$emulator $emu_opts +loadmem=$outdir/$bm_hex 2> /dev/null 2> $outdir/$bm_run"
+		#echo ">>> Emu. cmd          $emu_cmds" | tee -a $outdir/$bm_log
+		$emulator $emu_opts +loadmem=$outdir/$bm_hex 2> /dev/null 2> $outdir/$bm_run | tee -a $outdir/$bm_log
+	else
+		emu_cmds="$emulator $emu_opts $outdir/$bm_bin 2> /dev/null 2> $outdir/$bm_run"
+		#echo ">>> Emu. cmd          $emu_cmds" | tee -a $outdir/$bm_log
+		$emulator $emu_opts $outdir/$bm_bin 2> /dev/null 2> $outdir/$bm_run | tee -a $outdir/$bm_log	
+	fi
+
+	echo "" | tee -a $outdir/$bm_log
+	echo ">>> Helps:"                          | tee -a $outdir/$bm_log
+	echo ">>> Benchmark         $benchmark"    | tee -a $outdir/$bm_log
+	echo ">>> Configuration     $config"       | tee -a $outdir/$bm_log
+	echo ">>> Log file          $bm_log"       | tee -a $outdir/$bm_log
+	echo ">>> DRAM sim          $dramsim_msg"	 | tee -a $outdir/$bm_log
+	echo ">>> Emu. opts         $emu_opts"	   | tee -a $outdir/$bm_log
+	echo ">>> Emu. cmds         $emu_cmds"	   | tee -a $outdir/$bm_log
+	echo "" | tee -a $outdir/$bm_log
+	cat $outdir/$bm_log
 done
 
 if [ "$1" == "all" ]; then

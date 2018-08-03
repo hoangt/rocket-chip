@@ -44,5 +44,5 @@ get-all:
 	done
 
 #====
-test:
+mycore:
 	@make build-one config=myCore

@@ -20,11 +20,15 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#define MEM_SIZE       0x10000000L
+#include "emulator_type.h"
+
 #define MEM_SIZE_BITS  3
 #define MEM_LEN_BITS   8
 #define MEM_RESP_BITS  2
 
+//#define USE_DRAMSIM2   1
+
+//==========================================================================================
 // For option parsing, which is split across this file, Verilog, and
 // FESVR's HTIF, a few external files must be pulled in. The list of
 // files and what they provide is enumerated:
@@ -39,6 +43,7 @@
 //     - PLUSARG_USAGE_OPTIONS
 //   variables:
 //     - static const char * verilog_plusargs
+//==========================================================================================
 
 extern dtm_t* dtm;
 extern remote_bitbang_t * jtag;
@@ -127,14 +132,17 @@ int main(int argc, char** argv)
   int ret = 0;
   bool print_cycles = false;
 
-	bool dramsim=false;
   const char *loadmem = NULL;
 	FILE * hexfile = NULL;
 
+	//==== DRAMSim2
+	bool dramsim2=false;
 	uint64_t memsz_mb = MEM_SIZE / (1024*1024);
+  mm_t *mm[N_MEM_CHANNELS];
 
   // Port numbers are 16 bit unsigned integers.
   uint16_t rbb_port = 0;
+
 #if VM_TRACE
   FILE * vcdfile = NULL;
   uint64_t start = 0;
@@ -147,8 +155,10 @@ int main(int argc, char** argv)
       {"cycle-count", no_argument,       0, 'c' },
       {"help",        no_argument,       0, 'h' },
       {"max-cycles",  required_argument, 0, 'm' },
+#ifdef USE_DRAMSIM2
       {"dramsim",     no_argument,       0, 'd' },
       {"loadmem",     required_argument, 0, 'l' },
+#endif
       {"seed",        required_argument, 0, 's' },
       {"rbb-port",    required_argument, 0, 'r' },
       {"verbose",     no_argument,       0, 'V' },
@@ -176,7 +186,8 @@ int main(int argc, char** argv)
       case 'r': rbb_port = atoi(optarg);    break;
       case 'V': verbose = true;             break;
 			// TH
-      case 'd': dramsim = true;             break;
+#ifdef USE_DRAMSIM2
+      case 'd': dramsim2 = true;             break;
       case 'l': {
         hexfile = strcmp(optarg, "-") == 0 ? stdout : fopen(optarg, "w");
         if (!hexfile) {
@@ -187,6 +198,8 @@ int main(int argc, char** argv)
 				fclose(hexfile);
         break;
       }
+#endif
+
 #if VM_TRACE
       case 'v': {
         vcdfile = strcmp(optarg, "-") == 0 ? stdout : fopen(optarg, "w");
@@ -300,6 +313,35 @@ done_processing:
   }
 #endif
 
+//**** Instantiate DRAMSIM2 memory attached with LLC ****
+  uint64_t mem_width = MEM_DATA_BITS / 8;
+  // Instantiate and initialize main memory
+  for (int i = 0; i < N_MEM_CHANNELS; i++) {
+		//TH: use simple memory or DRAMSIM2
+		mm[i] = dramsim2 ? (mm_t*)(new mm_dramsim2_t) : (mm_t*)(new mm_magic_t);
+		if (dramsim2)
+			fprintf(stdout, ">>> DRAM memory is used (connected with DRAMSim2)\n");
+
+    try {
+      mm[i]->init(memsz_mb*1024*1024 / N_MEM_CHANNELS, mem_width, CACHE_BLOCK_BYTES);
+    } catch (const std::bad_alloc& e) {
+      fprintf(stderr,
+          "Failed to allocate %ld bytes (%ld MiB) of memory\n"
+          "Set smaller amount of memory using +memsize=<N> (in MiB)\n",
+              memsz_mb*1024*1024, memsz_mb);
+      exit(-1);
+    }
+  }
+
+  if (loadmem) {
+    void *mems[N_MEM_CHANNELS];
+    for (int i = 0; i < N_MEM_CHANNELS; i++)
+      mems[i] = mm[i]->get_data();
+    load_mem(mems, loadmem, CACHE_BLOCK_BYTES, N_MEM_CHANNELS);
+		fprintf(stdout, ">>> Application binary %s is stored in DRAM\n", loadmem);
+  }
+//****
+
   jtag = new remote_bitbang_t(rbb_port);
   dtm = new dtm_t(htif_argc, htif_argv);
 
@@ -327,10 +369,114 @@ done_processing:
   tile->reset = 0;
   done_reset = true;
 
+//**** Instantiate DRAMSIM2 memory attached with LLC ****
+#ifdef USE_DRAMSIM2
+  bool_t     *mem_ar_valid[N_MEM_CHANNELS];
+  bool_t     *mem_ar_ready[N_MEM_CHANNELS];
+  mem_addr_t *mem_ar_bits_addr[N_MEM_CHANNELS];
+  mem_id_t   *mem_ar_bits_id[N_MEM_CHANNELS];
+  mem_size_t *mem_ar_bits_size[N_MEM_CHANNELS];
+  mem_len_t  *mem_ar_bits_len[N_MEM_CHANNELS];
+
+  bool_t     *mem_aw_valid[N_MEM_CHANNELS];
+  bool_t     *mem_aw_ready[N_MEM_CHANNELS];
+  mem_addr_t *mem_aw_bits_addr[N_MEM_CHANNELS];
+  mem_id_t   *mem_aw_bits_id[N_MEM_CHANNELS];
+  mem_size_t *mem_aw_bits_size[N_MEM_CHANNELS];
+  mem_len_t  *mem_aw_bits_len[N_MEM_CHANNELS];
+
+  bool_t     *mem_w_valid[N_MEM_CHANNELS];
+  bool_t     *mem_w_ready[N_MEM_CHANNELS];
+  mem_data_t *mem_w_bits_data[N_MEM_CHANNELS];
+  mem_strb_t *mem_w_bits_strb[N_MEM_CHANNELS];
+  bool_t     *mem_w_bits_last[N_MEM_CHANNELS];
+
+  bool_t     *mem_b_valid[N_MEM_CHANNELS];
+  bool_t     *mem_b_ready[N_MEM_CHANNELS];
+  mem_resp_t *mem_b_bits_resp[N_MEM_CHANNELS];
+  mem_id_t   *mem_b_bits_id[N_MEM_CHANNELS];
+
+  bool_t     *mem_r_valid[N_MEM_CHANNELS];
+  bool_t     *mem_r_ready[N_MEM_CHANNELS];
+  mem_resp_t *mem_r_bits_resp[N_MEM_CHANNELS];
+  mem_id_t   *mem_r_bits_id[N_MEM_CHANNELS];
+  mem_data_t *mem_r_bits_data[N_MEM_CHANNELS];
+  bool_t     *mem_r_bits_last[N_MEM_CHANNELS];
+#endif
+//****
+
   while (!dtm->done() && !jtag->done() &&
          !tile->io_success && trace_count < max_cycles) {
+//**** Copy binary into memory storage
+#if USE_DRAMSIM2
+    for (int i = 0; i < N_MEM_CHANNELS; i++) {
+      value(mem_ar_ready[i]) = mm[i]->ar_ready();
+      value(mem_aw_ready[i]) = mm[i]->aw_ready();
+      value(mem_w_ready[i]) = mm[i]->w_ready();
+
+      value(mem_b_valid[i]) = mm[i]->b_valid();
+      value(mem_b_bits_resp[i]) = mm[i]->b_resp();
+      value(mem_b_bits_id[i]) = mm[i]->b_id();
+
+      value(mem_r_valid[i]) = mm[i]->r_valid();
+      value(mem_r_bits_resp[i]) = mm[i]->r_resp();
+      value(mem_r_bits_id[i]) = mm[i]->r_id();
+      value(mem_r_bits_last[i]) = mm[i]->r_last();
+
+      memcpy(values(mem_r_bits_data[i]), mm[i]->r_data(), mem_width);
+    }
+    //value(field(io_debug_resp_ready)) = dtm->resp_ready();
+    //value(field(io_debug_req_valid)) = dtm->req_valid();
+    //value(field(io_debug_req_bits_addr)) = dtm->req_bits().addr;
+    //value(field(io_debug_req_bits_op)) = dtm->req_bits().op;
+    //value(field(io_debug_req_bits_data)) = dtm->req_bits().data;
+#endif
+//****
+
     tile->clock = 0;
     tile->eval();
+
+#if USE_DRAMSIM2
+		/*
+    dtm_t::resp debug_resp_bits;
+    debug_resp_bits.resp = value(field(io_debug_resp_bits_resp));
+    debug_resp_bits.data = value(field(io_debug_resp_bits_data));
+
+    dtm->tick(
+      value(field(io_debug_req_ready)),
+      value(field(io_debug_resp_valid)),
+      debug_resp_bits
+    );
+		*/
+#endif
+
+//****
+#if USE_DRAMSIM2
+    for (int i = 0; i < N_MEM_CHANNELS; i++) {
+      mm[i]->tick(
+        value(mem_ar_valid[i]),
+        value(mem_ar_bits_addr[i]) - MEM_BASE,
+        value(mem_ar_bits_id[i]),
+        value(mem_ar_bits_size[i]),
+        value(mem_ar_bits_len[i]),
+
+        value(mem_aw_valid[i]),
+        value(mem_aw_bits_addr[i]) - MEM_BASE,
+        value(mem_aw_bits_id[i]),
+        value(mem_aw_bits_size[i]),
+        value(mem_aw_bits_len[i]),
+
+        value(mem_w_valid[i]),
+        value(mem_w_bits_strb[i]),
+        values(mem_w_bits_data[i]),
+        value(mem_w_bits_last[i]),
+
+        value(mem_r_ready[i]),
+        value(mem_b_ready[i])
+      );
+    }
+#endif
+
 #if VM_TRACE
     dump = tfp && trace_count >= start;
     if (dump)
@@ -343,6 +489,7 @@ done_processing:
     if (dump)
       tfp->dump(static_cast<vluint64_t>(trace_count * 2 + 1));
 #endif
+		// running next cycle
     trace_count++;
   }
 
