@@ -90,7 +90,6 @@ class DefaultConfigWithRVFIMonitors extends Config(
     new WithNPMP(0) ++
     new WithoutMISAWrite ++
     new WithoutmtvecWrite ++
-    new WithoutCounters ++
     new WithoutMulDiv ++
     new WithoutFPU ++
     new WithNMemoryChannels(0) ++
