@@ -1,0 +1,22 @@
+#==== myCore ====#
+Benchmark, cycle cout, instruction count
+dhrystone, mcycle = 247819, minstret = 198753, =
+
+median, mcycle = 5786, minstret = 4159, =
+
+qsort, mcycle = 199344, minstret = 125645, =
+
+rsort, mcycle = 216798, minstret = 173176, =
+
+towers, mcycle = 6334, minstret = 6170, =
+
+multiply, mcycle = 28263, minstret = 24302, =
+
+mm, C0: 28935 cycles, C0: 25217 instructions, =
+
+spmv, mcycle = 57321, minstret = 33937, =
+
+mt-matmul, matmul(cid, nc, 16, input1_data, input2_data, results_data); barrier(nc): 41054 cycles, 10.0 cycles/iter, 1.5 CPI, , =matmul(cid, nc, 16, input1_data, input2_data, results_data); barrier(nc): 41054 cycles, 10.0 cycles/iter, 1.5 CPI
+
+fl-matmul, matmul_fl(cid, nc, 16, input1_data, input2_data, results_data); barrier(nc): 32362 cycles, 7.9 cycles/iter, 1.4 CPI, , =matmul_fl(cid, nc, 16, input1_data, input2_data, results_data); barrier(nc): 32362 cycles, 7.9 cycles/iter, 1.4 CPI
+

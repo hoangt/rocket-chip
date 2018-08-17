@@ -10,6 +10,8 @@ riscv_benchmarks="dhrystone median qsort rsort towers vvadd multiply mm spmv mt-
 max_cycles=100000000000
 emu_opts="+cycle-count +max-cycles=$max_cycles +verbose"
 
+mkdir -p output
+
 #====
 case "$1" in
 	"")

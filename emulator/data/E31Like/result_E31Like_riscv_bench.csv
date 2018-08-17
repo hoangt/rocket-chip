@@ -1,0 +1,22 @@
+#==== E31Like ====#
+Benchmark, cycle cout, instruction count
+dhrystone, , , =
+
+median, , , =
+
+qsort, , , =
+
+rsort, , , =
+
+towers, , , =
+
+multiply, , , =
+
+mm, , , =
+
+spmv, , , =
+
+mt-matmul, , , =
+
+fl-matmul, , , =
+
