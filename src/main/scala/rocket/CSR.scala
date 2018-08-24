@@ -115,11 +115,17 @@ object CSR
   val SZ = 3
   def X = BitPat.dontCare(SZ)
   def N = UInt(0,SZ)
-  def W = UInt(1,SZ)
-  def S = UInt(2,SZ)
-  def C = UInt(3,SZ)
+  def R = UInt(2,SZ)
   def I = UInt(4,SZ)
-  def R = UInt(5,SZ)
+  def W = UInt(5,SZ)
+  def S = UInt(6,SZ)
+  def C = UInt(7,SZ)
+
+  // mask a CSR cmd with a valid bit
+  def maskCmd(valid: Bool, cmd: UInt): UInt = {
+    // all commands less than CSR.I are treated by CSRFile as NOPs
+    cmd & ~Mux(valid, 0.U, CSR.I)
+  }
 
   val ADDRSZ = 12
   def busErrorIntCause = 128
@@ -208,13 +214,27 @@ class CSRFileIO(implicit p: Parameters) extends CoreBundle
   val bp = Vec(nBreakpoints, new BP).asOutput
   val pmp = Vec(nPMPs, new PMP).asOutput
   val counters = Vec(nPerfCounters, new PerfCounterIO)
+  val csrw_counter = UInt(OUTPUT, CSR.nCtr)
   val inst = Vec(retireWidth, UInt(width = iLen)).asInput
   val trace = Vec(retireWidth, new TracedInstruction).asOutput
 }
 
-class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Parameters) extends CoreModule()(p)
+case class CustomCSR(id: Int, mask: BigInt, init: Option[BigInt])
+
+class CustomCSRIO(implicit p: Parameters) extends CoreBundle {
+  val wen = Bool()
+  val wdata = UInt(xLen.W)
+  val value = UInt(xLen.W)
+}
+
+class CSRFile(
+  perfEventSets: EventSets = new EventSets(Seq()),
+  customCSRs: Seq[CustomCSR] = Nil)(implicit p: Parameters)
+    extends CoreModule()(p)
     with HasCoreParameters {
-  val io = new CSRFileIO
+  val io = new CSRFileIO {
+    val customCSRs = Vec(CSRFile.this.customCSRs.size, new CustomCSRIO).asOutput
+  }
 
   val reset_mstatus = Wire(init=new MStatus().fromBits(0))
   reset_mstatus.mpp := PRV.M
@@ -350,9 +370,6 @@ class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Param
     CSRs.tselect -> reg_tselect,
     CSRs.tdata1 -> reg_bp(reg_tselect).control.asUInt,
     CSRs.tdata2 -> reg_bp(reg_tselect).address.sextTo(xLen),
-    CSRs.mimpid -> UInt(0),
-    CSRs.marchid -> UInt(0),
-    CSRs.mvendorid -> UInt(0),
     CSRs.misa -> reg_misa,
     CSRs.mstatus -> read_mstatus,
     CSRs.mtvec -> reg_mtvec,
@@ -450,6 +467,18 @@ class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Param
     for ((pmp, i) <- read_pmp zipWithIndex)
       read_mapping += (CSRs.pmpaddr0 + i) -> pmp.readAddr
   }
+
+  // implementation-defined CSRs
+  val reg_custom = customCSRs.map { csr =>
+    require(csr.mask >= 0 && csr.mask.bitLength <= xLen)
+    require(!read_mapping.contains(csr.id))
+    val reg = csr.init.map(init => RegInit(init.U(xLen.W))).getOrElse(Reg(UInt(xLen.W)))
+    read_mapping += csr.id -> reg
+    reg
+  }
+
+  // mimpid, marchid, and mvendorid are 0 unless overridden by customCSRs
+  Seq(CSRs.mimpid, CSRs.marchid, CSRs.mvendorid).foreach(id => read_mapping.getOrElseUpdate(id, 0.U))
 
   val decoded_addr = read_mapping map { case (k, v) => k -> (io.rw.addr === k) }
   val wdata = readModifyWriteCSR(io.rw.cmd, io.rw.rdata, io.rw.wdata)
@@ -611,6 +640,12 @@ class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Param
   io.time := reg_cycle
   io.csr_stall := reg_wfi
 
+  for ((io, reg) <- io.customCSRs zip reg_custom) {
+    io.wen := false
+    io.wdata := wdata
+    io.value := reg
+  }
+
   io.rw.rdata := Mux1H(for ((k, v) <- read_mapping) yield decoded_addr(k) -> v)
 
   // cover access to register
@@ -632,7 +667,9 @@ class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Param
     set_fs_dirty := true
   }
 
-  when (io.rw.cmd.isOneOf(CSR.S, CSR.C, CSR.W)) {
+  val csr_wen = io.rw.cmd.isOneOf(CSR.S, CSR.C, CSR.W)
+  io.csrw_counter := Mux(coreParams.haveBasicCounters && csr_wen && (io.rw.addr.inRange(CSRs.mcycle, CSRs.mcycle + CSR.nCtr) || io.rw.addr.inRange(CSRs.mcycleh, CSRs.mcycleh + CSR.nCtr)), UIntToOH(io.rw.addr(log2Ceil(CSR.nCtr+nPerfCounters)-1, 0)), 0.U)
+  when (csr_wen) {
     when (decoded_addr(CSRs.mstatus)) {
       val new_mstatus = new MStatus().fromBits(wdata)
       reg_mstatus.mie := new_mstatus.mie
@@ -777,6 +814,13 @@ class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Param
         pmp.addr := wdata
       }
     }
+    for ((io, csr, reg) <- (io.customCSRs, customCSRs, reg_custom).zipped) {
+      val mask = csr.mask.U(xLen.W)
+      when (decoded_addr(csr.id)) {
+        reg := (wdata & mask) | (reg & ~mask)
+        io.wen := true
+      }
+    }
   }
 
   if (!usingVM) {
@@ -842,8 +886,9 @@ class CSRFile(perfEventSets: EventSets = new EventSets(Seq()))(implicit p: Param
     (any, which)
   }
 
-  def readModifyWriteCSR(cmd: UInt, rdata: UInt, wdata: UInt) =
-    (Mux(cmd.isOneOf(CSR.S, CSR.C), rdata, UInt(0)) | wdata) & ~Mux(cmd === CSR.C, wdata, UInt(0))
+  def readModifyWriteCSR(cmd: UInt, rdata: UInt, wdata: UInt) = {
+    (Mux(cmd(1), rdata, UInt(0)) | wdata) & ~Mux(cmd(1,0).andR, wdata, UInt(0))
+  }
 
   def legalizePrivilege(priv: UInt): UInt =
     if (usingVM) Mux(priv === PRV.H, PRV.U, priv)

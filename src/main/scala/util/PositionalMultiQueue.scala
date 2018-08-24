@@ -21,7 +21,7 @@ class PositionalMultiQueuePush[T <: Data](params: PositionalMultiQueueParameters
 
 /* A PositionalMultiQueue is like a normal Queue, except that it stores (position, value).
  * When you pop it, you get back the oldest (position, value) pushed into it.
- * >>>>> You must guarantee that you never enque to an occupied position. <<<<<
+ * You must guarantee that you never enque to an occupied position.
  * Unlike a normal Queue, a PositionalMultiQueue has multiple deque ports (ways).
  * You select which way will deque a given (position, value) when you enque it.
  * If combinational, deque ports become valid on the same cycle as the enque.
